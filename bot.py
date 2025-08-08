@@ -68,7 +68,7 @@ def main():
 
     # Start the bot with proper exception handling to avoid duplicate instances
     try:
-        application.run_polling()
+        application.run_polling(allowed_updates=["message", "callback_query"])
     except Exception as e:
         logger.error(f"Error in polling: {e}")
         raise e
