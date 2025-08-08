@@ -14,6 +14,12 @@ logger = logging.getLogger(__name__)
 API_KEY = os.getenv('TELEGRAM_API_KEY')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
+# Ensure the webhook is removed before running the bot
+def clear_webhook():
+    url = f"https://api.telegram.org/bot{API_KEY}/deleteWebhook"
+    response = requests.post(url)
+    return response.json()
+
 async def start(update: Update, context: CallbackContext):
     """Send a message when the command /start is issued."""
     await update.message.reply_text('Hi! Send me a picture of your food, and I will track its protein content!')
@@ -38,6 +44,9 @@ async def process_image(update: Update, context: CallbackContext):
 
 def main():
     """Start the bot."""
+    # First, ensure any existing webhook is removed
+    clear_webhook()
+
     # Initialize the Application with the API key
     application = Application.builder().token(API_KEY).build()
 
