@@ -38,14 +38,14 @@ async def start(update: Update, context: CallbackContext):
 async def process_image(update: Update, context: CallbackContext):
     """Process the image sent by the user and analyze the protein content."""
     # Download the image
-    photo_file = update.message.photo[-1].get_file()
-    photo_file.download('food_image.jpg')
+    photo_file = await update.message.photo[-1].get_file()  # Await the get_file method
+    await photo_file.download('food_image.jpg')  # Download asynchronously
 
     # Call Gemini API to analyze the image
     headers = {'Authorization': f'Bearer {GEMINI_API_KEY}'}
     with open('food_image.jpg', 'rb') as f:
         response = requests.post('https://api.gemini.com/food-analyze', files={'file': f}, headers=headers)
-        
+
     if response.status_code == 200:
         data = response.json()
         protein_content = data.get('protein', 'N/A')  # Adjust based on actual Gemini API response
