@@ -42,10 +42,13 @@ def ensure_no_other_instance():
 
 async def start(update: Update, context: CallbackContext):
     """Send a message when the command /start is issued."""
+    logger.info("Received /start command")
     await update.message.reply_text('Hi! Send me a picture of your food, and I will track its protein content!')
 
 async def process_image(update: Update, context: CallbackContext):
     """Process the image sent by the user and analyze the protein content."""
+    logger.info(f"Received image: {update.message.photo[-1].file_id}")
+
     # Download the image
     photo_file = update.message.photo[-1].get_file()
     photo_file.download('food_image.jpg')
@@ -59,8 +62,10 @@ async def process_image(update: Update, context: CallbackContext):
         data = response.json()
         protein_content = data.get('protein', 'N/A')  # Adjust based on actual Gemini API response
         await update.message.reply_text(f'This food contains {protein_content}g of protein.')
+        logger.info(f"Protein content: {protein_content}g")
     else:
         await update.message.reply_text('Sorry, I could not analyze the image. Please try again.')
+        logger.error(f"Error analyzing image: {response.text}")
 
 def main():
     """Start the bot."""
@@ -77,9 +82,10 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.PHOTO, process_image))
 
-    # Start the bot with proper exception handling to avoid duplicate instances
+    logger.info("Starting bot polling...")
     try:
         application.run_polling()
+        logger.info("Bot started successfully with polling.")
     except Exception as e:
         logger.error(f"Error in polling: {e}")
         raise e
