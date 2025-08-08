@@ -2,7 +2,8 @@ import logging
 import os
 import requests
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler
+from telegram.ext.filters import PhotoFilter  # Updated import for Filters
 from telegram.ext import CallbackContext
 
 # Set up logging
@@ -20,6 +21,7 @@ def start(update: Update, context: CallbackContext):
 
 def process_image(update: Update, context: CallbackContext):
     """Process the image sent by the user and analyze the protein content."""
+    # Download the image
     photo_file = update.message.photo[-1].get_file()
     photo_file.download('food_image.jpg')
 
@@ -30,19 +32,22 @@ def process_image(update: Update, context: CallbackContext):
         
     if response.status_code == 200:
         data = response.json()
-        protein_content = data['protein']  # Adjust based on actual Gemini API response
+        protein_content = data.get('protein', 'N/A')  # Adjust based on actual Gemini API response
         update.message.reply_text(f'This food contains {protein_content}g of protein.')
     else:
         update.message.reply_text('Sorry, I could not analyze the image. Please try again.')
 
 def main():
     """Start the bot."""
+    # Initialize the Updater with the API key
     updater = Updater(API_KEY, use_context=True)
     dp = updater.dispatcher
 
+    # Register the /start command and photo handler
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.photo, process_image))
+    dp.add_handler(MessageHandler(PhotoFilter, process_image))  # Updated usage of PhotoFilter
 
+    # Start the bot
     updater.start_polling()
     updater.idle()
 
