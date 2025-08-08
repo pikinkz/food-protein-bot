@@ -2,62 +2,62 @@ import logging
 import os
 import requests
 from telegram import Update
-from telegram.ext import CommandHandler, MessageHandler, filters
-from telegram.ext import Application, CallbackContext
+from telegram.ext import CommandHandler, MessageHandler, filters, Application
+from telegram.ext import CallbackContext
 
-# Set up logging for better debugging
+# Set up logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Retrieve API keys from environment variables
 API_KEY = os.getenv('TELEGRAM_API_KEY')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
-# Ensure the webhook is removed before running the bot
-def clear_webhook():
-    url = f"https://api.telegram.org/bot{API_KEY}/deleteWebhook"
-    response = requests.post(url)
-    logger.info(f"Webhook delete response: {response.json()}")
-    return response.json()
+# Clear any existing updates when the bot starts
+def clear_updates():
+    url = f"https://api.telegram.org/bot{API_KEY}/getUpdates"
+    response = requests.get(url)
+    if response.status_code == 200:
+        updates = response.json().get("result", [])
+        if updates:
+            # Mark all updates as read (effectively clears them)
+            for update in updates:
+                update_id = update.get("update_id")
+                requests.post(f"https://api.telegram.org/bot{API_KEY}/getUpdates?offset={update_id + 1}")
+            logger.info("Cleared previous updates successfully.")
+    else:
+        logger.error("Failed to clear updates")
 
+# Handle the /start command
 async def start(update: Update, context: CallbackContext):
     """Send a message when the command /start is issued."""
-    logger.info("Received /start command")
     await update.message.reply_text('Hi! Send me a picture of your food, and I will track its protein content!')
 
+# Handle the image processing and protein content analysis
 async def process_image(update: Update, context: CallbackContext):
     """Process the image sent by the user and analyze the protein content."""
-    logger.info("Received image: %s", update.message.photo[-1].file_id)
+    # Download the image
+    photo_file = update.message.photo[-1].get_file()
+    photo_file.download('food_image.jpg')
 
-    try:
-        # Download the image
-        photo_file = update.message.photo[-1].get_file()
-        logger.info("Downloading the image...")
-        await photo_file.download('food_image.jpg')
-        logger.info("Image downloaded successfully!")
-
-        # Call Gemini API to analyze the image
-        headers = {'Authorization': f'Bearer {GEMINI_API_KEY}'}
-        with open('food_image.jpg', 'rb') as f:
-            response = requests.post('https://api.gemini.com/food-analyze', files={'file': f}, headers=headers)
+    # Call Gemini API to analyze the image
+    headers = {'Authorization': f'Bearer {GEMINI_API_KEY}'}
+    with open('food_image.jpg', 'rb') as f:
+        response = requests.post('https://api.gemini.com/food-analyze', files={'file': f}, headers=headers)
         
-        if response.status_code == 200:
-            data = response.json()
-            protein_content = data.get('protein', 'N/A')  # Adjust based on actual Gemini API response
-            await update.message.reply_text(f'This food contains {protein_content}g of protein.')
-        else:
-            await update.message.reply_text('Sorry, I could not analyze the image. Please try again.')
-            logger.error(f"Error from Gemini API: {response.text}")
-    
-    except Exception as e:
-        logger.error(f"Error processing image: {str(e)}")
-        await update.message.reply_text('Sorry, something went wrong while processing your image.')
+    if response.status_code == 200:
+        data = response.json()
+        protein_content = data.get('protein', 'N/A')  # Adjust based on actual Gemini API response
+        await update.message.reply_text(f'This food contains {protein_content}g of protein.')
+    else:
+        await update.message.reply_text('Sorry, I could not analyze the image. Please try again.')
 
+# Main function to start the bot
 def main():
     """Start the bot."""
-    # First, ensure any existing webhook is removed
-    clear_webhook()
+    # Clear previous updates each time the bot starts
+    clear_updates()
 
     # Initialize the Application with the API key
     application = Application.builder().token(API_KEY).build()
@@ -68,7 +68,6 @@ def main():
 
     # Start the bot with proper exception handling to avoid duplicate instances
     try:
-        logger.info("Starting bot polling...")
         application.run_polling()
     except Exception as e:
         logger.error(f"Error in polling: {e}")
