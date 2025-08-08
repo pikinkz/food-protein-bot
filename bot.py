@@ -45,8 +45,12 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.PHOTO, process_image))
 
-    # Start the bot
-    application.run_polling()
+    # Start the bot with proper exception handling to avoid duplicate instances
+    try:
+        application.run_polling()
+    except Exception as e:
+        logger.error(f"Error in polling: {e}")
+        raise e
 
 if __name__ == '__main__':
     main()
