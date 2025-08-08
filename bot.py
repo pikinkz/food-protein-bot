@@ -1,6 +1,7 @@
 import logging
+import os
 import requests
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from telegram.ext import CallbackContext
 
@@ -9,9 +10,9 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize the bot with your token
-API_KEY = 'YOUR_BOT_API_KEY'
-GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'
+# Retrieve API keys from environment variables
+API_KEY = os.getenv('TELEGRAM_API_KEY')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 def start(update: Update, context: CallbackContext):
     """Send a message when the command /start is issued."""
