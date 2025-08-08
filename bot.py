@@ -16,9 +16,29 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
 # Ensure the webhook is removed before running the bot
 def clear_webhook():
-    url = f"https://api.telegram.org/bot{API_KEY}/deleteWebhook"
-    response = requests.post(url)
-    return response.json()
+    try:
+        url = f"https://api.telegram.org/bot{API_KEY}/deleteWebhook"
+        response = requests.post(url)
+        if response.status_code == 200:
+            logger.info("Webhook cleared successfully.")
+        else:
+            logger.error(f"Failed to clear webhook: {response.text}")
+    except Exception as e:
+        logger.error(f"Error clearing webhook: {e}")
+
+# Ensure no other instances are running by checking for active sessions
+def ensure_no_other_instance():
+    try:
+        url = f"https://api.telegram.org/bot{API_KEY}/getUpdates"
+        response = requests.get(url)
+        if response.status_code == 200:
+            updates = response.json()
+            if updates["result"]:
+                logger.warning("Previous bot instance is active. Please clear the sessions.")
+        else:
+            logger.error(f"Failed to check bot status: {response.text}")
+    except Exception as e:
+        logger.error(f"Error checking bot status: {e}")
 
 async def start(update: Update, context: CallbackContext):
     """Send a message when the command /start is issued."""
@@ -44,8 +64,11 @@ async def process_image(update: Update, context: CallbackContext):
 
 def main():
     """Start the bot."""
-    # First, ensure any existing webhook is removed
+    # Clear any existing webhook to prevent conflicts
     clear_webhook()
+
+    # Ensure no other instances are running before starting the bot
+    ensure_no_other_instance()
 
     # Initialize the Application with the API key
     application = Application.builder().token(API_KEY).build()
