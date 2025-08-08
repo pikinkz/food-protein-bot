@@ -2,8 +2,7 @@ import logging
 import os
 import requests
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler
-from telegram.ext.filters import PhotoFilter  # Updated import for Filters
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters
 from telegram.ext import CallbackContext
 
 # Set up logging
@@ -45,7 +44,7 @@ def main():
 
     # Register the /start command and photo handler
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(PhotoFilter, process_image))  # Updated usage of PhotoFilter
+    dp.add_handler(MessageHandler(filters.PHOTO, process_image))  # Updated usage of filters.PHOTO
 
     # Start the bot
     updater.start_polling()
